@@ -43,6 +43,10 @@ type AppState = {
   setHighContrast: (v: boolean) => void;
   extraSpacing: boolean;
   setExtraSpacing: (v: boolean) => void;
+  consentGiven: boolean;
+  setConsentGiven: (v: boolean) => void;
+  dataToggles: { location: boolean; analytics: boolean; personalization: boolean };
+  setDataToggles: (v: { location: boolean; analytics: boolean; personalization: boolean }) => void;
 
   // language
   lang: Lang;
@@ -99,7 +103,7 @@ function usePersisted<T>(key: string, def: T, parse: (s: string) => T = (s) => s
       return s == null ? def : parse(s);
     } catch { return def; }
   });
-  useEffect(() => { try { localStorage.setItem(key, String(v)); } catch {} }, [key, v]);
+  useEffect(() => { try { localStorage.setItem(key, typeof v === "object" ? JSON.stringify(v) : String(v)); } catch {} }, [key, v]);
   return [v, setV] as const;
 }
 
@@ -113,6 +117,14 @@ function AppProvider({ children }: { children: ReactNode }) {
   const [fontSize, setFontSize] = usePersisted<FontSize>("sysmart_fontsize", "standard", (s) => (s as FontSize));
   const [highContrast, setHighContrast] = usePersisted<boolean>("sysmart_hc", false, (s) => s === "true");
   const [extraSpacing, setExtraSpacing] = usePersisted<boolean>("sysmart_spacing", false, (s) => s === "true");
+  const [consentGiven, setConsentGiven] = usePersisted<boolean>("sysmart_consent", false, (s) => s === "true");
+  const [dataToggles, setDataToggles] = usePersisted<{ location: boolean; analytics: boolean; personalization: boolean }>(
+    "sysmart_toggles",
+    { location: false, analytics: false, personalization: false },
+    (s) => {
+      try { return JSON.parse(s); } catch { return { location: false, analytics: false, personalization: false }; }
+    }
+  );
   const [lang, setLang] = usePersisted<Lang>("sysmart_lang", "en", (s) => (s === "my" ? "my" : "en"));
   const [locationGrantedRaw, setLocationGrantedRaw] = useState<boolean | null>(() => {
     if (typeof window === "undefined") return null;
@@ -164,7 +176,10 @@ function AppProvider({ children }: { children: ReactNode }) {
     screen, history, go, back, reset,
     dark, setDark, notifications, setNotifications, reduceMotion, setReduceMotion,
     accessibilityMode, setAccessibilityMode, fontSize, setFontSize,
-    highContrast, setHighContrast, extraSpacing, setExtraSpacing,
+    extraSpacing, setExtraSpacing,
+    highContrast, setHighContrast,
+    consentGiven, setConsentGiven,
+    dataToggles, setDataToggles,
     lang, setLang, t,
     locationGranted: locationGrantedRaw, setLocationGranted,
     showLocationSheet, setShowLocationSheet,
@@ -307,8 +322,22 @@ function LoginScreen() {
         <Input label="Cart ID" value={cart} onChange={(v) => { setCart(v); setErr(""); }} placeholder={a.t("enterCart")} error={err} />
       </div>
       <div className="mt-8 space-y-3">
-        <PrimaryButton onClick={start}>{a.t("startShopping")}</PrimaryButton>
-        <button onClick={browse} className="h-12 w-full text-[15px] font-medium text-[var(--sm-secondary)] underline-offset-4 hover:underline">
+        {/* Compact Consent Banner (HCI Principle: Informed Consent) */}
+        {!a.consentGiven && (
+          <div className="mb-4 rounded-xl border border-[var(--sm-primary)]/20 bg-[var(--sm-primary)]/5 p-4">
+            <p className="mb-2 text-[14px] font-bold text-[var(--sm-text)]">🛡️ {a.t("consentBanner")}</p>
+            <p className="mb-3 text-[12px] leading-relaxed text-[var(--sm-text-2)]">{a.t("consentText")}</p>
+            <button
+              onClick={() => a.setConsentGiven(true)}
+              className="flex h-10 w-full items-center justify-center rounded-lg bg-[var(--sm-primary)] text-[13px] font-bold text-white shadow-sm transition active:scale-[0.98]"
+            >
+              ✅ {a.t("acceptContinue")}
+            </button>
+          </div>
+        )}
+
+        <PrimaryButton disabled={!a.consentGiven} onClick={start}>{a.t("startShopping")}</PrimaryButton>
+        <button disabled={!a.consentGiven} onClick={browse} className={`h-12 w-full text-[15px] font-medium transition ${!a.consentGiven ? "opacity-50 grayscale" : "text-[var(--sm-secondary)] underline-offset-4 hover:underline"}`}>
           {a.t("browseWithout")}
         </button>
       </div>
@@ -1427,23 +1456,6 @@ function SettingsScreen() {
             ))}
           </div>
         </Card>
-
-        {/* Location */}
-        <Card className="!p-0">
-          <div className="flex min-h-[56px] items-center gap-3 px-4">
-            <span className="text-[20px]">📍</span>
-            <div className="flex-1">
-              <p className="text-[15px] text-[var(--sm-text)]">{a.t("locationServices")}</p>
-              <p className="text-[11.5px] text-[var(--sm-text-2)]">
-                {a.locationGranted === true ? a.t("locationActive") : a.locationGranted === false ? "Off" : "Not set"}
-              </p>
-            </div>
-            <Toggle checked={!!a.locationGranted}
-              onChange={(v) => { if (v) a.setShowLocationSheet(true); else { a.setLocationGranted(false); a.showToast(a.t("locationOff"), "info"); } }}
-              label="Location" />
-          </div>
-        </Card>
-
         {/* Accessibility */}
         <Card className="!p-0">
           <div className="border-b border-[var(--sm-border)] px-4 py-3">
@@ -1472,6 +1484,46 @@ function SettingsScreen() {
               <SettingRow icon="🎬" label="Reduce motion" checked={a.reduceMotion} onChange={a.setReduceMotion} />
             </>
           )}
+        </Card>
+
+        {/* Privacy Settings (HCI Principle: User Control) */}
+        <Card className="!p-0">
+          <div className="border-b border-[var(--sm-border)] px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="text-[20px]">🛡️</span>
+              <span className="flex-1 text-[15px] font-semibold text-[var(--sm-text)]">{a.t("privacySettings")}</span>
+            </div>
+          </div>
+          <div className="border-b border-[var(--sm-border)]">
+            <div className="flex min-h-[56px] items-center gap-3 px-4">
+              <span className="text-[20px]">📍</span>
+              <div className="flex-1">
+                <p className="text-[15px] text-[var(--sm-text)]">Location (GPS)</p>
+                <p className="text-[11px] text-[var(--sm-text-2)]">{a.locationGranted ? "Tracking active" : "Not sharing"}</p>
+              </div>
+              <Toggle
+                checked={a.dataToggles.location}
+                onChange={(v) => {
+                  a.setDataToggles({ ...a.dataToggles, location: v });
+                  if (!v) {
+                    a.setLocationGranted(false);
+                    a.showToast("GPS location revoked", "info");
+                  } else {
+                    a.setShowLocationSheet(true);
+                  }
+                }}
+                label="Location Toggle"
+              />
+            </div>
+          </div>
+          <div className="border-b border-[var(--sm-border)]">
+            <SettingRow icon="📊" label={a.t("analytics")} checked={a.dataToggles.analytics} onChange={(v) => a.setDataToggles({ ...a.dataToggles, analytics: v })} />
+            <p className="px-12 pb-3 text-[11px] text-[var(--sm-text-2)]">{a.t("analyticsDesc")}</p>
+          </div>
+          <div className="">
+            <SettingRow icon="👤" label={a.t("personalization")} checked={a.dataToggles.personalization} onChange={(v) => a.setDataToggles({ ...a.dataToggles, personalization: v })} />
+            <p className="px-12 pb-3 text-[11px] text-[var(--sm-text-2)]">{a.t("personalizationDesc")}</p>
+          </div>
         </Card>
 
         <p className="text-center text-[12px] text-[var(--sm-text-2)]">All settings persist on this device.</p>
