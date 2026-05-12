@@ -1,3 +1,4 @@
+import aisleImage from "./assets/aisle.jpg";
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import {
   STORES,
@@ -148,7 +149,7 @@ function usePersisted<T>(key: string, def: T, parse: (s: string) => T = (s) => s
   useEffect(() => {
     try {
       localStorage.setItem(key, typeof v === "object" ? JSON.stringify(v) : String(v));
-    } catch {}
+    } catch { }
   }, [key, v]);
   return [v, setV] as const;
 }
@@ -216,7 +217,7 @@ function AppProvider({ children }: { children: ReactNode }) {
     try {
       if (v === null) localStorage.removeItem("sysmart_loc");
       else localStorage.setItem("sysmart_loc", String(v));
-    } catch {}
+    } catch { }
   };
   const [showLocationSheet, setShowLocationSheet] = useState(false);
   const [cartId, setCartId] = useState("");
@@ -241,7 +242,12 @@ function AppProvider({ children }: { children: ReactNode }) {
   };
   const back = () => {
     setHistory((h) => {
-      if (h.length === 0) return h;
+      if (h.length === 0) {
+        if (screen === "scan" || screen === "navHome" || screen === "outdoor") {
+          setScreen("home");
+        }
+        return h;
+      }
       const prev = h[h.length - 1];
       setScreen(prev);
       return h.slice(0, -1);
@@ -987,11 +993,101 @@ function CategorySheet({
 function StoreMap({ highlight, compact }: { highlight?: string; compact?: boolean }) {
   const u = STORE_MAP.user_position;
   const target = highlight ? STORE_MAP.sections.find((s) => s.name === highlight) : null;
+  const targetX = target ? target.x + target.w / 2 : null;
+  const targetY = target ? target.y + target.h / 2 : null;
+  const sourceSection = STORE_MAP.sections.find(
+    (s) => u.x >= s.x && u.x <= s.x + s.w && u.y >= s.y && u.y <= s.y + s.h,
+  );
+  const blockedSections = STORE_MAP.sections.filter(
+    (s) => s.id !== sourceSection?.id && s.id !== target?.id,
+  );
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+  const roundPoint = (x: number, y: number) => ({ x: Math.round(clamp(x, 2, 98)), y: Math.round(clamp(y, 2, 98)) });
+  const start = roundPoint(u.x, u.y);
+  const end = targetX !== null && targetY !== null ? roundPoint(targetX, targetY) : null;
+  const isBlocked = (x: number, y: number) => {
+    const padding = 1;
+    return blockedSections.some(
+      (s) =>
+        x >= s.x - padding &&
+        x <= s.x + s.w + padding &&
+        y >= s.y - padding &&
+        y <= s.y + s.h + padding,
+    );
+  };
+  const keyOf = (x: number, y: number) => `${x},${y}`;
+  const parseKey = (k: string) => {
+    const [x, y] = k.split(",").map(Number);
+    return { x, y };
+  };
+  const findRoute = () => {
+    if (!end) return [] as { x: number; y: number }[];
+    const queue: { x: number; y: number }[] = [start];
+    const visited = new Set<string>([keyOf(start.x, start.y)]);
+    const parent = new Map<string, string>();
+    const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ] as const;
+    while (queue.length) {
+      const cur = queue.shift()!;
+      if (cur.x === end.x && cur.y === end.y) break;
+      for (const [dx, dy] of dirs) {
+        const nx = cur.x + dx;
+        const ny = cur.y + dy;
+        if (nx < 2 || nx > 98 || ny < 2 || ny > 98) continue;
+        if (isBlocked(nx, ny)) continue;
+        const nk = keyOf(nx, ny);
+        if (visited.has(nk)) continue;
+        visited.add(nk);
+        parent.set(nk, keyOf(cur.x, cur.y));
+        queue.push({ x: nx, y: ny });
+      }
+    }
+    const endKey = keyOf(end.x, end.y);
+    if (!visited.has(endKey)) return [start, end];
+    const fullPath: { x: number; y: number }[] = [];
+    let cursor = endKey;
+    while (cursor) {
+      fullPath.push(parseKey(cursor));
+      const next = parent.get(cursor);
+      if (!next) break;
+      cursor = next;
+    }
+    fullPath.reverse();
+    if (fullPath.length <= 2) return fullPath;
+    const simplified: { x: number; y: number }[] = [fullPath[0]];
+    for (let i = 1; i < fullPath.length - 1; i++) {
+      const prev = fullPath[i - 1];
+      const curr = fullPath[i];
+      const next = fullPath[i + 1];
+      const d1x = curr.x - prev.x;
+      const d1y = curr.y - prev.y;
+      const d2x = next.x - curr.x;
+      const d2y = next.y - curr.y;
+      if (d1x !== d2x || d1y !== d2y) simplified.push(curr);
+    }
+    simplified.push(fullPath[fullPath.length - 1]);
+    return simplified;
+  };
+  const route = findRoute();
+  const routePoints = route.map((p) => `${p.x},${p.y}`).join(" ");
   return (
     <div
       className={`relative w-full overflow-hidden rounded-xl border border-[var(--sm-border)] bg-[var(--sm-surface)] ${compact ? "aspect-[5/4]" : "aspect-[4/5]"}`}
     >
       <svg viewBox="0 0 100 100" className="h-full w-full" preserveAspectRatio="none">
+        <defs>
+          <pattern id="sm-grid" width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M 8 0 L 0 0 0 8" fill="none" stroke="var(--sm-border)" strokeWidth="0.3" opacity="0.2" />
+          </pattern>
+          <filter id="sm-soft-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="0" stdDeviation="0.7" floodColor="#0ea5e9" floodOpacity="0.6" />
+          </filter>
+        </defs>
+        <rect x="0" y="0" width="100" height="100" fill="url(#sm-grid)" />
         <rect
           x="2"
           y="2"
@@ -1025,42 +1121,68 @@ function StoreMap({ highlight, compact }: { highlight?: string; compact?: boolea
           </g>
         ))}
         {target && (
-          <line
-            x1={u.x}
-            y1={u.y}
-            x2={target.x + target.w / 2}
-            y2={target.y + target.h / 2}
-            stroke="var(--sm-primary)"
-            strokeWidth="0.8"
-            strokeDasharray="2,1.5"
-          />
+          <>
+            <polyline
+              points={routePoints}
+              fill="none"
+              stroke="#bae6fd"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity="0.95"
+            />
+            <polyline
+              points={routePoints}
+              fill="none"
+              stroke="var(--sm-secondary)"
+              strokeWidth="1.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray="2 1.2"
+              filter="url(#sm-soft-glow)"
+            >
+              <animate attributeName="stroke-dashoffset" from="0" to="-14" dur="1.8s" repeatCount="indefinite" />
+            </polyline>
+          </>
         )}
         {target && (
           <g>
             <circle
-              cx={target.x + target.w / 2}
-              cy={target.y + target.h / 2}
-              r="2.5"
-              fill="var(--sm-primary)"
+              cx={targetX!}
+              cy={targetY!}
+              r="3"
+              fill="#ef4444"
+              stroke="white"
+              strokeWidth="0.5"
             />
             <circle
-              cx={target.x + target.w / 2}
-              cy={target.y + target.h / 2}
-              r="4"
+              cx={targetX!}
+              cy={targetY!}
+              r="5"
               fill="none"
-              stroke="var(--sm-primary)"
-              strokeWidth="0.4"
+              stroke="#ef4444"
+              strokeWidth="0.6"
               opacity="0.6"
             >
-              <animate attributeName="r" from="3" to="6" dur="1.4s" repeatCount="indefinite" />
+              <animate attributeName="r" from="4" to="7" dur="1.2s" repeatCount="indefinite" />
               <animate
                 attributeName="opacity"
                 from="0.7"
                 to="0"
-                dur="1.4s"
+                dur="1.2s"
                 repeatCount="indefinite"
               />
             </circle>
+            <text
+              x={targetX!}
+              y={targetY! - 4.8}
+              textAnchor="middle"
+              fill="#ef4444"
+              fontSize="2.7"
+              fontWeight="800"
+            >
+              DEST
+            </text>
           </g>
         )}
         <circle cx={u.x} cy={u.y} r="2.5" fill="#22c55e" stroke="white" strokeWidth="0.6" />
@@ -1173,24 +1295,22 @@ function NavARScreen() {
   const product = a.selectedProductId ? INVENTORY.find((i) => i.id === a.selectedProductId) : null;
   return (
     <>
-      <TopBar
-        title={a.t("arNavigation")}
-        onBack={a.back}
-        right={
-          <button onClick={a.back} className="text-[12px] font-semibold text-[var(--sm-secondary)]">
-            Map
-          </button>
-        }
-      />
+      <TopBar title={a.t("arNavigation")} onBack={a.back} />
       <div className="p-4 sm-fade-in">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-b from-zinc-900 to-zinc-700">
+        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black">
+          <img
+            src={aisleImage}
+            alt="Supermarket aisle view"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-black/45" />
           <div className="absolute inset-4 border-2 border-white/40">
             <div className="absolute -left-0.5 -top-0.5 h-5 w-5 border-l-4 border-t-4 border-white" />
             <div className="absolute -right-0.5 -top-0.5 h-5 w-5 border-r-4 border-t-4 border-white" />
             <div className="absolute -bottom-0.5 -left-0.5 h-5 w-5 border-b-4 border-l-4 border-white" />
             <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 border-b-4 border-r-4 border-white" />
           </div>
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
             <div className="text-[80px]">⬆️</div>
             <p className="text-[18px] font-semibold">
               {a.t("headTo")} {product?.category}
@@ -1207,7 +1327,13 @@ function NavARScreen() {
           </p>
         </Card>
         <p className="mt-3 text-center text-[12px] text-[var(--sm-text-2)]">{a.t("arHelp")}</p>
-        <div className="mt-4">
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            onClick={() => a.go("navMap")}
+            className="flex h-[52px] w-full items-center justify-center rounded-lg border-2 border-[var(--sm-primary)] bg-transparent px-2 text-[16px] font-semibold text-[var(--sm-primary)] transition active:scale-[0.98]"
+          >
+            Switch to Map View
+          </button>
           <PrimaryButton onClick={() => a.go("navArrived")}>{a.t("iAmHere")}</PrimaryButton>
         </div>
       </div>
@@ -1559,7 +1685,7 @@ function ReportCartScreen() {
 function ReportDoneScreen() {
   const a = useApp();
   const [confirmCancel, setConfirmCancel] = useState(false);
-  
+
   return (
     <>
       <TopBar title="Submitted" onBack={a.back} />
@@ -1577,7 +1703,7 @@ function ReportDoneScreen() {
           <PrimaryButton onClick={() => a.reset("home")}>Return to Home</PrimaryButton>
           <button
             onClick={() => setConfirmCancel(true)}
-            className="h-12 w-full rounded-xl border-2 border-[var(--sm-error)]/30 bg-[var(--sm-error)]/5 text-[15px] font-semibold text-[var(--sm-error)] transition active:scale-[0.98]"
+            className="h-12 w-full text-[14px] font-medium text-[var(--sm-error)] underline-offset-4 hover:underline"
           >
             {a.t("cancel")}
           </button>
@@ -1585,7 +1711,7 @@ function ReportDoneScreen() {
       </div>
       <ConfirmDialog
         open={confirmCancel}
-        title="Cancel help request?"
+        title="Cancel report?"
         message="The staff member will no longer be notified."
         confirmLabel={a.t("cancel")}
         danger
@@ -2053,22 +2179,20 @@ function InvSelectScreen() {
               <button
                 key={s.id}
                 onClick={() => a.setInventoryStoreMode(String(s.id))}
-                className={`flex h-10 shrink-0 items-center justify-center rounded-full px-4 text-[12px] font-semibold transition ${
-                  a.inventoryStoreMode === String(s.id)
-                    ? "bg-[var(--sm-primary)] text-white shadow"
-                    : "bg-[var(--sm-border)]/40 text-[var(--sm-text-2)]"
-                }`}
+                className={`flex h-10 shrink-0 items-center justify-center rounded-full px-4 text-[12px] font-semibold transition ${a.inventoryStoreMode === String(s.id)
+                  ? "bg-[var(--sm-primary)] text-white shadow"
+                  : "bg-[var(--sm-border)]/40 text-[var(--sm-text-2)]"
+                  }`}
               >
                 {s.name.replace("Sultan ", "")}
               </button>
             ))}
             <button
               onClick={() => a.setInventoryStoreMode("all")}
-              className={`flex h-10 shrink-0 items-center justify-center rounded-full px-4 text-[12px] font-semibold transition ${
-                a.inventoryStoreMode === "all"
-                  ? "bg-[var(--sm-primary)] text-white shadow"
-                  : "bg-[var(--sm-border)]/40 text-[var(--sm-text-2)]"
-              }`}
+              className={`flex h-10 shrink-0 items-center justify-center rounded-full px-4 text-[12px] font-semibold transition ${a.inventoryStoreMode === "all"
+                ? "bg-[var(--sm-primary)] text-white shadow"
+                : "bg-[var(--sm-border)]/40 text-[var(--sm-text-2)]"
+                }`}
             >
               Compare All
             </button>
@@ -2303,7 +2427,7 @@ function ProfileScreen() {
           a.setIsGuest(false);
           try {
             localStorage.removeItem("sysmart_loc");
-          } catch {}
+          } catch { }
           a.reset("login");
           setTimeout(() => a.showToast(a.t("loggedOut"), "success"), 100);
         }}
@@ -2666,7 +2790,7 @@ function SideDrawer() {
           a.setIsGuest(false);
           try {
             localStorage.removeItem("sysmart_loc");
-          } catch {}
+          } catch { }
           a.reset("login");
           setTimeout(() => a.showToast(a.t("loggedOut"), "success"), 100);
         }}
