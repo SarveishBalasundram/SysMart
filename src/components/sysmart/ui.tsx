@@ -168,7 +168,7 @@ export function ConfirmDialog({ open, title, message, onConfirm, onCancel, confi
         <h3 className="text-[18px] font-semibold text-[var(--sm-text)]">{title}</h3>
         <p className="mt-2 text-[14px] text-[var(--sm-text-2)]">{message}</p>
         <div className="mt-5 flex gap-2">
-          <button onClick={onCancel} className="h-12 flex-1 rounded-lg border-2 border-[var(--sm-border)] text-[15px] font-semibold text-[var(--sm-text)]">Cancel</button>
+          <button onClick={onCancel} className="h-12 flex-1 rounded-lg border-2 border-[var(--sm-border)] text-[15px] font-semibold text-[var(--sm-text)]">Return</button>
           <button onClick={onConfirm} className={`h-12 flex-1 rounded-lg text-[15px] font-semibold text-white ${danger ? "bg-[var(--sm-error)]" : "bg-[var(--sm-primary)]"}`}>{confirmLabel}</button>
         </div>
       </div>
