@@ -1,0 +1,317 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: var(--sm-bg);
+  --color-foreground: var(--sm-text);
+}
+
+:root {
+  --sm-bg: #F8FAF9;
+  --sm-surface: #FFFFFF;
+  --sm-primary: #2E7D5E;
+  --sm-secondary: #1565C0;
+  --sm-text: #1A1A1A;
+  --sm-text-2: #5C5C5C;
+  --sm-success: #388E3C;
+  --sm-warning: #F57C00;
+  --sm-error: #C62828;
+  --sm-border: #E0E0E0;
+  --sm-frame: #1a1a1a;
+}
+
+.sm-dark {
+  --sm-bg: #0F1612;
+  --sm-surface: #1C2B22;
+  --sm-primary: #4CAF85;
+  --sm-secondary: #5B9BD5;
+  --sm-text: #F0F4F1;
+  --sm-text-2: #A8B9AE;
+  --sm-success: #66BB6A;
+  --sm-warning: #FFA726;
+  --sm-error: #EF5350;
+  --sm-border: #2E4038;
+}
+
+/* ============================================================
+ * HIGH CONTRAST MODE — WCAG AAA-level
+ * ============================================================ */
+
+/* --- Light HC: black on white --- */
+.sm-hc {
+  --sm-bg:        #FFFFFF;
+  --sm-surface:   #FFFFFF;
+  --sm-text:      #000000;
+  --sm-text-2:    #000000;
+  --sm-border:    #000000;
+  --sm-primary:   #000000;   /* Pure black for high contrast */
+  --sm-secondary: #000000;
+  --sm-success:   #000000;
+  --sm-warning:   #000000;
+  --sm-error:     #000000;
+}
+
+/* --- Dark HC: white / yellow on black --- */
+.sm-dark.sm-hc {
+  --sm-bg:        #000000;
+  --sm-surface:   #000000;
+  --sm-text:      #FFFFFF;
+  --sm-text-2:    #FFFF00;   /* yellow — 21:1 on black */
+  --sm-border:    #FFFFFF;
+  --sm-primary:   #FFFF00;   /* yellow for high contrast accent */
+  --sm-secondary: #FFFF00;
+  --sm-success:   #FFFF00;
+  --sm-warning:   #FFFF00;
+  --sm-error:     #FFFF00;
+}
+
+/* 1. Boxy layout — strip ALL border-radius */
+.sm-hc *, .sm-hc *::before, .sm-hc *::after {
+  border-radius: 0 !important;
+}
+
+/* 2. Thick solid borders on interactive & structural elements */
+.sm-hc button,
+.sm-hc input,
+.sm-hc select,
+.sm-hc textarea,
+.sm-hc [role="switch"] {
+  border: 3px solid var(--sm-border) !important;
+}
+/* Card / tile borders */
+.sm-hc [class*="rounded"],
+.sm-hc [class*="border"] {
+  border-width: 3px !important;
+  border-style: solid !important;
+  border-color: var(--sm-border) !important;
+}
+/* Dividers */
+.sm-hc [class*="divide"] > * + * {
+  border-top: 3px solid var(--sm-border) !important;
+}
+
+/* 3. Kill ALL shadows, gradients, transparency */
+.sm-hc * {
+  box-shadow:       none !important;
+  text-shadow:      none !important;
+  background-image: none !important;
+}
+/* Overlay backdrops → near-opaque */
+.sm-hc [class*="bg-black\/"] { background-color: rgba(0,0,0,0.94) !important; }
+.sm-hc [class*="bg-white\/"] { background-color: rgba(255,255,255,0.94) !important; }
+.sm-dark.sm-hc [class*="bg-black\/"] { background-color: rgba(0,0,0,0.96) !important; }
+
+/* Strip Tailwind opacity-modifier backgrounds (bg-success/15 etc.) */
+.sm-hc [class*="\/10"],
+.sm-hc [class*="\/15"],
+.sm-hc [class*="\/20"],
+.sm-hc [class*="\/30"],
+.sm-hc [class*="\/40"],
+.sm-hc [class*="\/50"] {
+  background-color: var(--sm-bg) !important;
+  opacity: 1 !important;
+}
+
+/* StatusBadge chips → border-only, no transparent fill */
+.sm-hc span[class*="rounded-full"] {
+  background-color: transparent !important;
+  border: 3px solid currentColor !important;
+}
+
+/* 4. Maximum-contrast text — bold weights */
+.sm-hc p, .sm-hc span, .sm-hc label { font-weight: 700 !important; }
+.sm-hc h1, .sm-hc h2, .sm-hc h3   { font-weight: 900 !important; }
+
+/* 5. Thick focus outlines on ALL interactive elements */
+.sm-hc button:focus,
+.sm-hc button:focus-visible,
+.sm-hc input:focus,
+.sm-hc input:focus-visible,
+.sm-hc select:focus,
+.sm-hc select:focus-visible,
+.sm-hc [role="switch"]:focus,
+.sm-hc [role="switch"]:focus-visible,
+.sm-hc a:focus,
+.sm-hc a:focus-visible {
+  outline: 4px solid var(--sm-primary) !important;
+  outline-offset: 3px !important;
+}
+
+/* 6. SVG icons — thicker strokes and fill in HC mode */
+.sm-hc svg { stroke-width: 4 !important; }
+/* Attempt to fill icons that use stroke in HC mode */
+.sm-hc svg[stroke="currentColor"]:not([fill="none"]) { fill: currentColor !important; }
+
+/* --- Specific Overrides for Logo --- */
+/* In Light HC, Logo box is black, icon is white, text is black */
+.sm-hc .bg-\[var\(--sm-primary\)\] {
+  background-color: var(--sm-text) !important;
+}
+.sm-hc .text-\[var\(--sm-primary\)\] {
+  color: var(--sm-text) !important;
+}
+
+/* In Dark HC, Logo box is yellow, icon is black, text is yellow/white */
+.sm-dark.sm-hc .bg-\[var\(--sm-primary\)\] {
+  background-color: #FFFF00 !important;
+}
+.sm-dark.sm-hc .bg-\[var\(--sm-primary\)\] svg {
+  color: #000000 !important;
+  stroke: #000000 !important;
+}
+
+/* Toggle switch — boxy, high-contrast thumb */
+.sm-hc [role="switch"] {
+  border: 3px solid var(--sm-border) !important;
+}
+.sm-hc [role="switch"] span {
+  background-color: var(--sm-text) !important;
+  border: 2px solid var(--sm-border) !important;
+}
+.sm-hc [role="switch"][aria-checked="true"] span {
+  background-color: var(--sm-bg) !important;
+}
+
+/* Disabled states */
+.sm-hc [disabled], .sm-hc :disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+}
+
+/* Underline links for discoverability */
+.sm-hc a {
+  text-decoration: underline !important;
+  text-decoration-thickness: 3px !important;
+  text-underline-offset: 4px !important;
+}
+
+/* Status bar & bottom nav strong borders */
+.sm-hc .sm-statusbar { border-bottom: 3px solid var(--sm-border) !important; }
+.sm-hc .sm-app-body > div:last-child { border-top: 3px solid var(--sm-border) !important; }
+.sm-hc .sm-sticky-bar { border-top: 3px solid var(--sm-border) !important; }
+
+html, body {
+  background: #f1f3f4;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--sm-text);
+}
+
+.sm-dark.sm-root, .sm-dark .sm-bg-root { background: var(--sm-bg); }
+
+.sm-stage {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #e8eaed 0%, #cfd4d8 100%);
+  padding: 20px 0;
+}
+.sm-dark-stage { background: linear-gradient(135deg, #0a0e10 0%, #1a2024 100%); }
+.sm-frame {
+  width: 100%; max-width: 390px; height: 844px;
+  max-height: calc(100vh - 40px);
+  background: var(--sm-bg);
+  border-radius: 44px;
+  box-shadow: 0 0 0 12px var(--sm-frame), 0 0 0 14px #2a2a2a, 0 30px 60px rgba(0,0,0,0.4);
+  overflow: hidden; position: relative; display: flex; flex-direction: column;
+  /* Contain fixed-position overlays inside the frame */
+  transform: translateZ(0);
+  will-change: transform;
+}
+@media (max-width: 430px) {
+  .sm-stage { padding: 0; background: var(--sm-bg); }
+  .sm-frame { border-radius: 0; box-shadow: none; height: 100vh; max-height: 100vh; }
+  .sm-notch { display: none; }
+}
+.sm-notch {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: 110px; height: 28px; background: #000; border-radius: 20px; z-index: 50;
+}
+.sm-statusbar {
+  height: 44px; display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 24px 6px; font-size: 13px; font-weight: 600;
+  color: var(--sm-text); background: var(--sm-surface); flex-shrink: 0;
+}
+.sm-content { flex: 1; overflow-y: auto; background: var(--sm-bg); position: relative; }
+.sm-content::-webkit-scrollbar { display: none; }
+/* Wraps scrollable content + bottom nav; zoom here scales all px-based text uniformly */
+.sm-app-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.sm-font-large .sm-app-body  { zoom: 1.15; }
+.sm-font-xlarge .sm-app-body { zoom: 1.32; }
+/* Sticky bar — sticks to the bottom of the visible scroll area */
+.sm-sticky-bar {
+  position: sticky;
+  bottom: 0;
+  left: 0; right: 0;
+  background: var(--sm-surface);
+  border-top: 1px solid var(--sm-border);
+  padding: 10px 16px 12px;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.07);
+  z-index: 10;
+}
+
+/* Font size scaling — applied to .sm-frame */
+.sm-font-standard { font-size: 16px; }
+.sm-font-large { font-size: 19px; line-height: 1.7; }
+.sm-font-xlarge { font-size: 22px; line-height: 1.9; }
+.sm-font-large h1, .sm-font-large h2, .sm-font-large h3 { font-size: 1.15em; }
+.sm-font-xlarge h1, .sm-font-xlarge h2, .sm-font-xlarge h3 { font-size: 1.3em; }
+.sm-font-xlarge .sm-card-pad { padding: 20px !important; }
+
+/* Extra spacing */
+.sm-spacing > * { margin-bottom: 4px; }
+.sm-spacing button, .sm-spacing [role="button"] { min-height: 56px; }
+
+/* Touch target boost in accessibility mode */
+.sm-a11y button { min-height: 56px; }
+
+/* Animations */
+@keyframes slideUp {
+  from { transform: translateY(40px) translateX(-50%); opacity: 0; }
+  to { transform: translateY(0) translateX(-50%); opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes nfcPulse {
+  0% { transform: scale(0.8); opacity: 0.7; }
+  100% { transform: scale(2); opacity: 0; }
+}
+@keyframes drawCheck {
+  from { stroke-dashoffset: 50; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes drawerIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.sm-fade-in { animation: fadeIn 0.25s ease-out; }
+.sm-drawer-in { animation: drawerIn 0.25s ease-out; }
+.sm-nfc-ring {
+  position: absolute; inset: 0;
+  border: 3px solid var(--sm-primary);
+  border-radius: 50%;
+  animation: nfcPulse 2s infinite ease-out;
+}
+.sm-check-path { stroke-dasharray: 50; animation: drawCheck 0.6s ease-out forwards; }
+
+.sm-no-motion *, .sm-no-motion *::before, .sm-no-motion *::after {
+  animation-duration: 0.001s !important;
+  transition-duration: 0.001s !important;
+}
+
+@layer base {
+  * { border-color: var(--sm-border); }
+}
