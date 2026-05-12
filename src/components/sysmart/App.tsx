@@ -323,12 +323,13 @@ function HomeScreen() {
   const [cartReqOpen, setCartReqOpen] = useState(false);
   const greeting = useMemo(() => {
     const h = new Date().getHours();
-    return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
-  }, []);
+    const g = h < 12 ? a.t("goodMorning") : h < 18 ? a.t("goodAfternoon") : a.t("goodEvening");
+    return `${g}, ${a.isGuest ? a.t("guest") : a.t("shopper")}`;
+  }, [a.lang, a.isGuest]);
 
   // Trigger location sheet on first visit if user has cart
   useEffect(() => {
-    if (a.locationGranted === null && !a.isGuest) {
+    if (a.locationGranted === null) {
       const t = setTimeout(() => a.setShowLocationSheet(true), 600);
       return () => clearTimeout(t);
     }
@@ -392,9 +393,9 @@ function HomeScreen() {
         </div>
       ) : (
         <div className="mt-5 flex gap-3 overflow-x-auto px-4 pb-1">
-          <StatusMini icon="🅿️" label={`${store.parking_available} of ${store.parking_total} spots free`} status={store.parking_available > 1 ? "green" : "yellow"} />
-          <StatusMini icon="🚦" label={`Traffic: ${store.traffic}`} status={store.traffic_level === 1 ? "green" : store.traffic_level === 2 ? "yellow" : "red"} />
-          <StatusMini icon="🛒" label="Lane 4 fastest" status="green" />
+          <StatusMini icon="🅿️" label={`${store.parking_available} ${a.t("of")} ${store.parking_total} ${a.t("spotsFree")}`} status={store.parking_available > 1 ? "green" : "yellow"} />
+          <StatusMini icon="🚦" label={`${a.t("trafficLabel")}: ${a.t("traffic" + store.traffic as any)}`} status={store.traffic_level === 1 ? "green" : store.traffic_level === 2 ? "yellow" : "red"} />
+          <StatusMini icon="🛒" label={a.t("laneFastest")} status="green" />
         </div>
       )}
 
