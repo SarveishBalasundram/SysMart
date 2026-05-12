@@ -371,7 +371,7 @@ function HomeScreen() {
       )}
 
       <div className="px-4 pt-5">
-        <h2 className="text-[22px] font-bold text-[var(--sm-text)]">{greeting}, {a.isGuest ? "Guest" : "Shopper"} 👋</h2>
+        <h2 className="text-[22px] font-bold text-[var(--sm-text)]">{greeting} 👋</h2>
         <div className="mt-1 flex items-center gap-2 text-[14px] text-[var(--sm-text-2)]">
           <span>{store.name} · {a.cartId ? `${a.cartId} linked` : a.t("guestMode")}</span>
         </div>

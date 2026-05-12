@@ -161,16 +161,54 @@
   stroke: #000000 !important;
 }
 
-/* Toggle switch — boxy, high-contrast thumb */
+/* Toggle switch — boxy, high-contrast states */
 .sm-hc [role="switch"] {
   border: 3px solid var(--sm-border) !important;
+  background-color: var(--sm-bg) !important; /* track is bg color (white in light HC) */
 }
+.sm-hc [role="switch"][aria-checked="true"] {
+  background-color: var(--sm-text) !important; /* track is text color (black in light HC) */
+}
+
 .sm-hc [role="switch"] span {
-  background-color: var(--sm-text) !important;
-  border: 2px solid var(--sm-border) !important;
+  background-color: var(--sm-text) !important; /* thumb is text color (black in light HC) */
+  border: 1px solid var(--sm-bg) !important;
 }
 .sm-hc [role="switch"][aria-checked="true"] span {
+  background-color: var(--sm-bg) !important; /* thumb is bg color (white in light HC) */
+  border: 1px solid var(--sm-text) !important;
+}
+
+/* Dark HC specifically — yellow accents */
+.sm-dark.sm-hc [role="switch"][aria-checked="true"] {
+  background-color: #FFFF00 !important; /* Yellow track when checked */
+}
+.sm-dark.sm-hc [role="switch"][aria-checked="true"] span {
+  background-color: #000000 !important; /* Black thumb on yellow track */
+}
+
+/* Segmented controls (Language/Font size selectors) in HC */
+.sm-hc .rounded-full.bg-\[var\(--sm-border\)\]\/40 {
   background-color: var(--sm-bg) !important;
+  border: 3px solid var(--sm-border) !important;
+  padding: 3px !important;
+}
+.sm-hc .rounded-full.bg-\[var\(--sm-border\)\]\/40 button.bg-\[var\(--sm-surface\)\] {
+  background-color: var(--sm-text) !important;
+  color: var(--sm-bg) !important;
+  border: none !important;
+}
+.sm-dark.sm-hc .rounded-full.bg-\[var\(--sm-border\)\]\/40 button.bg-\[var\(--sm-surface\)\] {
+  background-color: #FFFF00 !important; /* Yellow for active in dark HC */
+  color: #000000 !important;
+}
+
+/* Primary buttons text color in HC */
+.sm-hc .bg-\[var\(--sm-primary\)\] {
+  color: var(--sm-bg) !important;
+}
+.sm-dark.sm-hc .bg-\[var\(--sm-primary\)\] {
+  color: #000000 !important; /* Black text on yellow primary */
 }
 
 /* Disabled states */
